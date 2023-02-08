@@ -20,7 +20,7 @@ def loader(dataset: dict[str, Array],
     size = dataset['inputs'].shape[0]
     if batch_size is not None:
         key, key1 = jax.random.split(key)
-        indices = jax.random.permutation(key1, size)
+        indices = jax.random.permutation(key1, size)[:batch_size]
     if indices is None:
         raise TypeError('...')
     inputs = dataset['inputs'][indices]
