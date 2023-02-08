@@ -11,7 +11,6 @@ from torchvision import datasets as torch_datasets, transforms as torch_transfor
 _P = ParamSpec('_P')
 
 
-@jax.jit
 def loader(dataset: dict[str, Array],
            key: jax.random.PRNGKeyArray,
            batch_size: int | None = None,
