@@ -16,7 +16,7 @@ class BasicBlock(equinox.Module):
     conv1: equinox.Module
     conv2: equinox.Module
     downsample: equinox.Module
-    act: Callable[[Array], Array] = equinox.static_field()
+    act: equinox.Module = equinox.static_field()
     preact: bool = equinox.static_field()
 
     def __init__(self,
@@ -26,7 +26,7 @@ class BasicBlock(equinox.Module):
                  groups: int,
                  width_per_group: int,
                  norm: Callable[[int], equinox.Module] | None,
-                 act: Callable[[Array], Array],
+                 act: equinox.Module,
                  preact: bool = False,
                  *,
                  key: jax.random.PRNGKeyArray
@@ -48,7 +48,7 @@ class BasicBlock(equinox.Module):
                            if in_channels == channels else
                            equinox.nn.Sequential([conv1x1(in_channels, channels, stride=stride,
                                                           use_bias=use_bias, key=key2),
-                                                  norm]))
+                                                  norm(channels)]))
         self.act = act
         self.preact = preact
 
@@ -82,11 +82,12 @@ class ResNet(equinox.nn.Sequential):
                  key: jax.random.PRNGKeyArray
                  ):
         expansion = 1
+        act = equinox.nn.Lambda(act)
         key, key0, key1 = jax.random.split(key, 3)
         conv = conv3x3(in_channels, width, stride=1, use_bias=norm is None, key=key0)
-        post_conv = equinox.nn.Identity() if preact else equinox.nn.Sequential([norm(width), act])
+        post_conv = equinox.nn.Identity() if preact else equinox.nn.Sequential([norm(width), equinox.nn.Lambda(act)])
         pool = equinox.nn.AdaptiveMaxPool2d(1)
-        pre_pool = (equinox.nn.Sequential([norm(4 * width * expansion * widen_factor), act])
+        pre_pool = (equinox.nn.Sequential([norm(4 * width * expansion * widen_factor), equinox.nn.Lambda(act)])
                     if preact else equinox.nn.Identity())
 
         fc = equinox.nn.Linear(4 * width * expansion * widen_factor, num_classes, key=key1)
