@@ -1,4 +1,3 @@
-import equinox
 import jax
 import pytest
 from jax import numpy as jnp
@@ -13,5 +12,5 @@ def test_resnet(model):
 
     # test batch norm
     data = jnp.ones((4, 3, 32, 32))
-    out = jax.vmap(equinox.filter(model, equinox.is_array), axis_name='batch')(data)
+    out = jax.vmap(model, axis_name='batch')(data)
     assert out.shape[-1] == 5
