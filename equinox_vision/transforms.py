@@ -43,11 +43,13 @@ def random_crop(size: int,
     return _random_crop
 
 
-def normalize(mean: Array,
-              std: Array
+def normalize(mean: tuple | Array,
+              std: tuple | Array
               ) -> TransformFunc:
     # normalization
     def _ensure_3d(arr):
+        if isinstance(arr, tuple):
+            arr = jnp.array(arr)
         if arr.ndim == 1:
             return arr[:, None, None]
         else:

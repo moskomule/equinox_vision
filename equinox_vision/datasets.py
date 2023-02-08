@@ -33,7 +33,8 @@ def loader(dataset: dict[str, Array],
     return inputs, labels
 
 
-def classification_dataset(f: Callable[_P, dict[str, Array]]) -> Callable[_P, dict[str, Array], Callable]:
+def classification_dataset(f: Callable[_P, dict[str, Array]]
+                           ) -> Callable[_P, tuple[dict[str, Array], Callable]]:
     @functools.wraps(f)
     def wrapped(*args: _P.args, **kwargs: _P.kwargs) -> tuple[dict[str, Array], Callable]:
         dataset = f(*args, **kwargs)
