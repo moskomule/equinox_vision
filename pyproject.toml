@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "equionox_vision"
+description = 'Vision models with equinox'
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = []
+authors = [
+    { name = "Ryuichiro Hataya", email = "hataya@nlab.ci.i.u-tokyo.ac.jp" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+    "jax[cpu]",
+    "equinox",
+    "torch",
+    "torchvision",
+    "rich",
+]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://github.com/moskomule/equionox_vision"
+Issues = "https://github.com/moskomule/equionox_vision/issues"
+Source = "https://github.com/moskomule/equionox_vision"
+
+[tool.hatch.version]
+path = "equinox_vision/__about__.py"
+
+[tool.hatch.envs.tests]
+dependencies = [
+    "pytest",
+]
+
+[[tool.hatch.envs.test.matrix]]
+python = ["310", ]
+
+[tool.hatch.envs.docs]
+extra-dependencies = [
+    "mkdocs-material"
+]
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build --clean --strict"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.github",
+    "/docs",
+    "/tests",
+    "/examples"
+]
