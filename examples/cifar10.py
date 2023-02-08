@@ -20,7 +20,7 @@ def main():
                                             transforms.random_crop(32, 4, 'reflect')]))
     # todo: how to use weight decay with optax?
     optim = optax.adamw(1e-3, weight_decay=1e-4)
-    opt_state = optim.init(model)
+    opt_state = optim.init(equinox.filter(model, equinox.is_array))
 
     @equinox.filter_value_and_grad
     def forward(model, inputs, labels):
