@@ -37,7 +37,7 @@ def classification_dataset(f: Callable[_P, dict[str, Array]]
     @functools.wraps(f)
     def wrapped(*args: _P.args, **kwargs: _P.kwargs) -> tuple[dict[str, Array], Callable]:
         dataset = f(*args, **kwargs)
-        assert set(dataset.keys()) == {'inputs', 'labels'}
+        assert set(dataset.keys()) >= {'inputs', 'labels'}
         return dataset, loader
 
     return wrapped
@@ -51,7 +51,7 @@ def cifar10(root: str | Path,
     _dataset = torch_datasets.cifar.CIFAR10(root, is_train, transform=torch_transforms.ToTensor(), download=download)
     inputs = jnp.stack([img.numpy() for img, label in _dataset])  # BCHW in [0, 1]
     labels = jnp.array([label for img, label in _dataset])
-    return {"inputs": inputs, "labels": labels}
+    return {"inputs": inputs, "labels": labels, 'size': len(inputs)}
 
 
 @classification_dataset
@@ -62,4 +62,4 @@ def cifar100(root: str | Path,
     _dataset = torch_datasets.cifar.CIFAR100(root, is_train, transform=torch_transforms.ToTensor(), download=download)
     inputs = jnp.stack([img.numpy() for img, label in _dataset])  # BCHW in [0, 1]
     labels = jnp.array([label for img, label in _dataset])
-    return {"inputs": inputs, "labels": labels}
+    return {"inputs": inputs, "labels": labels, 'size': len(inputs)}

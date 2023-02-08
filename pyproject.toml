@@ -24,6 +24,7 @@ dependencies = [
     "equinox",
     "torch",
     "torchvision",
+    "optax",
     "rich",
 ]
 dynamic = ["version"]
