@@ -27,7 +27,7 @@ def loader(dataset: dict[str, Array],
     labels = dataset['labels'][indices]
 
     if transform is not None:
-        inputs = jax.vmap(transform)(inputs, jax.random.split(key, size))
+        inputs = jax.vmap(transform)(inputs, jax.random.split(key, inputs.shape[0]))
 
     return inputs, labels
 
