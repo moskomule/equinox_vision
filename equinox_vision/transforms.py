@@ -29,14 +29,16 @@ def random_crop(size: int,
                 padding_mode: str = 'constant') -> TransformFunc:
     # random cropping with optional padding
     # assumes input image is squared
+    slice_sizes = (size, size)
+
     def _random_crop(img: Array,
                      key: jax.random.PRNGKeyArray
                      ) -> Array:
         img_size = img.shape[-1]
         if padding > 0:
             img = jax.vmap(functools.partial(jnp.pad, pad_width=padding, mode=padding_mode))(img)
-        start_indices = jax.random.randint(key, (2,), 0, img_size + 2 * padding - size + 1)
-        slice_sizes = jnp.ones(2, dtype=jnp.int_) * size
+        start_indices = [jax.random.randint(key, (2,), 0, img_size + 2 * padding - size + 1) for key in
+                         jax.random.split(key)]
         return jax.vmap(functools.partial(jax.lax.dynamic_slice, start_indices=start_indices, slice_sizes=slice_sizes)
                         )(img)
 
