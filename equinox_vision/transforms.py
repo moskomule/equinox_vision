@@ -36,7 +36,7 @@ def random_crop(size: int,
         if padding > 0:
             img = jax.vmap(functools.partial(jnp.pad, pad_width=padding, mode=padding_mode))(img)
         start_indices = jax.random.randint(key, (2,), 0, img_size + 2 * padding - size + 1)
-        slice_sizes = jnp.ones(2) * size
+        slice_sizes = jnp.ones(2, dtype=jnp.int_) * size
         return jax.vmap(functools.partial(jax.lax.dynamic_slice, start_indices=start_indices, slice_sizes=slice_sizes)
                         )(img)
 
