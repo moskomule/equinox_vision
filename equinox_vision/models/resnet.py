@@ -37,8 +37,8 @@ class BasicBlock(equinox.Module):
         if preact:
             self.conv1 = equinox.nn.Sequential([norm(in_channels) or equinox.nn.Identity(), act,
                                                 conv3x3(in_channels, channels, stride, use_bias=use_bias, key=key0)])
-            self.conv2 = equinox.nn.Sequential([norm(in_channels) or equinox.nn.Identity(), act,
-                                                conv3x3(in_channels, channels, use_bias=use_bias, key=key1)])
+            self.conv2 = equinox.nn.Sequential([norm(channels) or equinox.nn.Identity(), act,
+                                                conv3x3(channels, channels, use_bias=use_bias, key=key1)])
         else:
             self.conv1 = equinox.nn.Sequential([conv3x3(in_channels, channels, stride, use_bias=use_bias, key=key0),
                                                 norm(channels) or equinox.nn.Identity(), act])
