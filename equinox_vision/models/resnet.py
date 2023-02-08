@@ -8,7 +8,7 @@ import jax
 from jax import numpy as jnp
 from jaxtyping import Array
 
-from equinox_vision.utils import conv1x1, conv3x3
+from equinox_vision.models.utils import conv1x1, conv3x3
 
 
 class BasicBlock(equinox.Module):
@@ -115,7 +115,8 @@ def batch_norm(num_channels: int,
     return equinox.experimental.BatchNorm(num_channels, axis_name=axis_name, momentum=momentum)
 
 
-def resnet(num_classes: int,
+def resnet(key: jax.random.PRNGKeyArray,
+           num_classes: int,
            depth: int,
            in_channels: int = 3,
            norm: Callable[[int], equinox.Module] | None = batch_norm,
@@ -125,10 +126,11 @@ def resnet(num_classes: int,
     "resnet-{depth}"
     assert (depth - 2) % 6 == 0
     layer_depth = (depth - 2) // 6
-    return ResNet(BasicBlock, norm, num_classes, layer_depth, in_channels=in_channels, act=act, **kwargs)
+    return ResNet(BasicBlock, norm, num_classes, layer_depth, in_channels=in_channels, act=act, key=key, **kwargs)
 
 
-def wide_resnet(num_classes: int,
+def wide_resnet(key: jax.random.PRNGKeyArray,
+                num_classes: int,
                 depth: int,
                 widen_factor: int,
                 in_channels: int = 3,
@@ -140,60 +142,67 @@ def wide_resnet(num_classes: int,
     assert (depth - 4) % 6 == 0
     layer_depth = (depth - 4) // 6
     return ResNet(BasicBlock, norm, num_classes, layer_depth, in_channels=in_channels,
-                  widen_factor=widen_factor, act=act, preact=True, **kwargs)
+                  widen_factor=widen_factor, act=act, preact=True, key=key, **kwargs)
 
 
-def resnet20(num_classes: int = 10,
+def resnet20(key: jax.random.PRNGKeyArray,
+             num_classes: int = 10,
              in_channels: int = 3
              ) -> ResNet:
     """ ResNet by He+16
     """
-    return resnet(num_classes, 20, in_channels)
+    return resnet(key, num_classes, 20, in_channels, )
 
 
-def resnet32(num_classes: int = 10,
+def resnet32(key: jax.random.PRNGKeyArray,
+             num_classes: int = 10,
              in_channels: int = 3
              ) -> ResNet:
     """ ResNet by He+16
     """
-    return resnet(num_classes, 32, in_channels)
+    return resnet(key, num_classes, 32, in_channels, )
 
 
-def resnet56(num_classes: int = 10,
+def resnet56(key: jax.random.PRNGKeyArray,
+             num_classes: int = 10,
              in_channels: int = 3
              ) -> ResNet:
     """ ResNet by He+16
     """
-    return resnet(num_classes, 56, in_channels)
+    return resnet(key, num_classes, 56, in_channels, )
 
 
-def wrn16_8(num_classes: int = 10,
+def wrn16_8(key: jax.random.PRNGKeyArray,
+            num_classes: int = 10,
             in_channels: int = 3
             ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17
     """
-    return wide_resnet(num_classes, 16, 8, in_channels)
+    return wide_resnet(key, num_classes, 16, 8, in_channels, )
 
 
-def wrn28_2(num_classes: int = 10,
+def wrn28_2(key: jax.random.PRNGKeyArray,
+            num_classes: int = 10,
             in_channels: int = 3
             ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17
     """
-    return wide_resnet(num_classes, 28, 2, in_channels)
+    return wide_resnet(key, num_classes, 28, 2, in_channels, )
 
 
-def wrn28_10(num_classes: int = 10,
+def wrn28_10(key: jax.random.PRNGKeyArray,
+             num_classes: int = 10,
              in_channels: int = 3
              ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17
     """
-    return wide_resnet(num_classes, 28, 10, in_channels)
+    return wide_resnet(key, num_classes, 28, 10, in_channels)
 
 
-def wrn40_2(num_classes: int = 10,
+def wrn40_2(key: jax.random.PRNGKeyArray,
+            num_classes: int = 10,
             in_channels: int = 3
             ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17
     """
-    return wide_resnet(num_classes, 40, 2, in_channels)
+    return wide_resnet(key, num_classes, 40, 2, in_channels)

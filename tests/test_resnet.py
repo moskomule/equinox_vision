@@ -3,12 +3,12 @@ import jax
 import pytest
 from jax import numpy as jnp
 
-from equinox_vision.resnet import resnet20, wrn16_8
+from equinox_vision.models.resnet import resnet20, wrn16_8
 
 
 @pytest.mark.parametrize("model", [resnet20, wrn16_8])
 def test_resnet(model):
-    model = model(num_classes=5)
+    model = model(jax.random.PRNGKey(0), num_classes=5)
 
     data = jnp.ones(3, 32, 32)
 
