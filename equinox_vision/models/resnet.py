@@ -1,5 +1,6 @@
 """ Basically ported from homura.vision
 """
+from __future__ import annotations
 
 from collections.abc import Callable
 
@@ -106,6 +107,12 @@ class ResNet(equinox.nn.Sequential):
 
         super().__init__([conv, post_conv, layer1, layer2, layer3, pre_pool, pool,
                           equinox.nn.Lambda(lambda x: jnp.reshape(x, (-1,))), fc])
+
+    def train(self) -> ResNet:
+        return equinox.tree_inference(self, False)
+
+    def eval(self) -> ResNet:
+        return equinox.tree_inference(self, True)
 
 
 def batch_norm(num_channels: int,
