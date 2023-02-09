@@ -16,10 +16,9 @@ dataset = cifar10('~/.equinox_vision/cifar10', is_train=True)  # (1)
 model = resnet.resnet20(key=jax.random.PRNGKey(0), num_classes=10)
 model = model.train()  # or model.eval()
 
-transform = jax.jit(compose([
+transform = compose([
     normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    random_hflip()])
-)  # (2)
+    random_hflip()])  # (2)
 
 
 @equinox.filter_value_and_grad
