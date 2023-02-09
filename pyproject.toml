@@ -29,6 +29,10 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[tool.hatch.envs.default.env-vars]
+# to install CPU version of torch to avoid cuda+cudnn problems
+PIP_EXTRA_INDEX_URL = "https://download.pytorch.org/whl/cpu https://pypi.org/simple/"
+
 [project.urls]
 Documentation = "https://github.com/moskomule/equionox_vision"
 Issues = "https://github.com/moskomule/equionox_vision/issues"

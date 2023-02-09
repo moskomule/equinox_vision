@@ -8,11 +8,11 @@
 import equinox
 import jax.random
 
-from equinox_vision.datasets import cifar10
+from equinox_vision.datasets import cifar10, loader
 from equinox_vision.models import resnet
 from equinox_vision.transforms import compose, normalize, random_hflip
 
-dataset, loader = cifar10('~/.equinox_vision/cifar10', is_train=True)  # (1)
+dataset = cifar10('~/.equinox_vision/cifar10', is_train=True)  # (1)
 model = resnet.resnet20(key=jax.random.PRNGKey(0), num_classes=10)
 model = model.train()  # or model.eval()
 
@@ -29,19 +29,19 @@ def forward(model, inputs, labels):
 
 
 @equinox.filter_jit
-def step(model, inputs, labels, opt_state):
+def step(model, key, opt_state):
+    inputs, labels = loader(dataset, key=key, batch_size=32, transform=transform)
     loss, grads = forward(model, inputs, labels)
-    updates, opt_state = optim.update(grads, opt_state)
+    updates, opt_state = optimizer.update(grads, opt_state)
     model = equinox.apply_updates(model, updates)
     return loss, model, opt_state
 
 
 for i in range(num_iters):
     key, key0 = jax.random.split(key)
-    inputs, labels = loader(dataset, batch_size=32, transform=transform, key=key0)
-    loss, model, opt_state = step(model, inputs, labels, opt_state)
+    loss, model, opt_state = step(model, key0, opt_state)
 
 ```
 
 1. Each dataset creation function consists of `dataset` (dict) and `loader` (function).
-2. Multiple transformations can be composed.
+2. Multiple transformations can be composed with `transforms.compose`.
