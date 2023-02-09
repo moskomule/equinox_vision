@@ -20,8 +20,8 @@ def main():
                                             transforms.random_hflip(),
                                             transforms.random_crop(32, 4, 'reflect')
                                             ]))
-    # todo: how to use weight decay with optax?
-    optim = optax.adamw(1e-3, weight_decay=1e-4)
+    optim = optax.chain(optax.additive_weight_decay(1e-4),
+                        optax.sgd(optax.piecewise_constant_schedule(0.1, {1_000: 0.1, 1_500: 0.1})))
     opt_state = optim.init(equinox.filter(model, equinox.is_array))
 
     @equinox.filter_value_and_grad
@@ -38,13 +38,13 @@ def main():
         return loss, model, opt_state
 
     print('--training--')
-    for i in track(range(trainset.size // batch_size * 50)):
+    for i in track(range(2_000)):
         key, key0 = jax.random.split(key)
         loss, model, opt_state = train_step(model, key0, opt_state)
 
     print('--evaluation--')
     model = model.eval()
-    testset, _ = datasets.cifar10("~/.cache/equinox_vision", False, True)
+    testset = datasets.cifar10("~/.cache/equinox_vision", False, True)
     inputs = transforms.normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))(testset['inputs'], None)
     preds = jax.numpy.argmax(jax.vmap(model, axis_name='batch')(inputs), axis=1)
     print(f"test accuracy {sum(preds == testset['labels']) / testset['size']}")
