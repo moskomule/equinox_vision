@@ -8,7 +8,7 @@ from equinox_vision.datasets import Dataset, loader
 
 @pytest.mark.parametrize("jit", [True, False])
 def test_loader(jit):
-    dataset = Dataset(jnp.ones((8, 10)), jnp.ones((8,)), 8)
+    dataset = Dataset(jnp.ones((8, 10)), jnp.ones((8,)), 'test', 8, 2, 0, 0)
     _loader = equinox.filter_jit(loader) if jit else loader
     inputs, targets = _loader(dataset, jax.random.PRNGKey(0), 3)
     assert inputs.shape[0] == 3
