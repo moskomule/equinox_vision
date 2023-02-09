@@ -2,6 +2,7 @@
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 
 import equinox
@@ -106,8 +107,24 @@ class ResNet(equinox.nn.Sequential):
         layer2, in_plane = _make_layer(in_plane, width * 2 * widen_factor, stride=2)
         layer3, in_plane = _make_layer(in_plane, width * 4 * widen_factor, stride=2)
 
-        super().__init__([conv, post_conv, layer1, layer2, layer3, pre_pool, pool,
-                          equinox.nn.Lambda(lambda x: jnp.reshape(x, (-1,))), fc])
+        layers = (conv, post_conv, layer1, layer2, layer3, pre_pool, pool,
+                  equinox.nn.Lambda(lambda x: jnp.reshape(x, (-1,))), fc)
+
+        # initialization, see https://github.com/patrick-kidger/equinox/issues/179
+
+        def kaiming_normal(w, k):
+            fan_out = w.shape[0] * math.prod(w.shape[2:])
+            gain = math.sqrt(2)
+            std = gain / math.sqrt(fan_out)
+            return jax.random.normal(k, w.shape) * std
+
+        is_conv = lambda x: isinstance(x, equinox.nn.Conv2d)
+        get_conv_weights = lambda m: [x.weight for x in jax.tree_util.tree_leaves(m, is_conv) if is_conv(x)]
+        conv_weights = get_conv_weights(layers)
+        new_weights = [kaiming_normal(w, k) for w, k in zip(conv_weights, jax.random.split(key, len(conv_weights)))]
+        layers = equinox.tree_at(get_conv_weights, layers, new_weights)
+
+        super().__init__(layers)
 
     def train(self) -> ResNet:
         return equinox.tree_inference(self, False)
