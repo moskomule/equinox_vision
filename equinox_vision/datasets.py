@@ -22,6 +22,10 @@ class Dataset:
         return f"Dataset(name={self.name}, size={self.size}, num_classes={self.num_classes} " \
                f"image_size={self.image_size} num_channels={self.num_channels})"
 
+    def __hash__(self):
+        return hash(f"{self.inputs}{self.labels}{self.name}{self.size}{self.num_classes}"
+                    f"{self.image_size}{self.num_channels}")
+
 
 def loader(dataset: Dataset,
            key: jax.random.PRNGKeyArray,
