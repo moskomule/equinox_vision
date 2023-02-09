@@ -45,9 +45,9 @@ def main():
     print('--evaluation--')
     model = model.eval()
     testset = datasets.cifar10("~/.cache/equinox_vision", False, True)
-    inputs = transforms.normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))(testset['inputs'], None)
+    inputs = transforms.normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))(testset.inputs, None)
     preds = jax.numpy.argmax(jax.vmap(model, axis_name='batch')(inputs), axis=1)
-    print(f"test accuracy {sum(preds == testset['labels']) / testset['size']}")
+    print(f"test accuracy {sum(preds == testset.labels) / testset.size}")
 
 
 if __name__ == '__main__':
