@@ -36,11 +36,12 @@ def random_crop(size: int,
                      ) -> Array:
         img_size = img.shape[-1]
         if padding > 0:
-            img = jax.vmap(functools.partial(jnp.pad, pad_width=padding, mode=padding_mode))(img)
+            pad = functools.partial(jnp.pad, pad_width=padding, mode=padding_mode)
+            img = jax.vmap(pad)(img) if img.ndim == 3 else pad(img)
         start_indices = [jax.random.randint(key, (), 0, img_size + 2 * padding - size + 1) for key in
                          jax.random.split(key)]
-        return jax.vmap(functools.partial(jax.lax.dynamic_slice, start_indices=start_indices, slice_sizes=slice_sizes)
-                        )(img)
+        crop = functools.partial(jax.lax.dynamic_slice, start_indices=start_indices, slice_sizes=slice_sizes)
+        return jax.vmap(crop)(img) if img.ndim == 3 else crop(img)
 
     return _random_crop
 

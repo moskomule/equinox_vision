@@ -14,17 +14,17 @@ def main():
 
     key, key0 = jax.random.split(key)
     print('--setup model--')
-    model = models.resnet20(key0)
+    model = models.wrn28_2(key0).train()
     print('--setup dataset--')
     trainset = datasets.cifar10("~/.cache/equinox_vision", True, True)
     testset = datasets.cifar10("~/.cache/equinox_vision", False, True)
     transform = jax.jit(transforms.compose([transforms.normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                                            transforms.random_crop(32, 4, 'reflect'),
                                             transforms.random_hflip(),
-                                            transforms.random_crop(32, 4, 'reflect')
                                             ]))
     optim = optax.chain(optax.additive_weight_decay(1e-4),
-                        optax.sgd(optax.piecewise_constant_schedule(0.1, {int(num_iters * 0.5): 0.1,
-                                                                          int(num_iters * 0.75): 0.1})))
+                        optax.sgd(optax.warmup_cosine_decay_schedule(0.01, 0.1, 1_000, num_iters - 1_000),
+                                  momentum=0.9))
     opt_state = optim.init(equinox.filter(model, equinox.is_array))
 
     @equinox.filter_value_and_grad

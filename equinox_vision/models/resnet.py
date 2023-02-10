@@ -36,20 +36,20 @@ class BasicBlock(equinox.Module):
         channels = int(channels * (width_per_group / 16)) * groups
         use_bias = norm is None
         if preact:
-            self.conv1 = equinox.nn.Sequential([norm(in_channels) or equinox.nn.Identity(), act,
+            self.conv1 = equinox.nn.Sequential([equinox.nn.Identity() if norm is None else norm(in_channels), act,
                                                 conv3x3(in_channels, channels, stride, use_bias=use_bias, key=key0)])
-            self.conv2 = equinox.nn.Sequential([norm(channels) or equinox.nn.Identity(), act,
+            self.conv2 = equinox.nn.Sequential([equinox.nn.Identity() if norm is None else norm(channels), act,
                                                 conv3x3(channels, channels, use_bias=use_bias, key=key1)])
         else:
             self.conv1 = equinox.nn.Sequential([conv3x3(in_channels, channels, stride, use_bias=use_bias, key=key0),
-                                                norm(channels) or equinox.nn.Identity(), act])
+                                                equinox.nn.Identity() if norm is None else norm(channels), act])
             self.conv2 = equinox.nn.Sequential([conv3x3(channels, channels, use_bias=use_bias, key=key1),
-                                                norm(channels) or equinox.nn.Identity()])
+                                                equinox.nn.Identity() if norm is None else norm(channels)])
         self.downsample = (equinox.nn.Identity()
                            if in_channels == channels else
                            equinox.nn.Sequential([conv1x1(in_channels, channels, stride=stride,
                                                           use_bias=use_bias, key=key2),
-                                                  norm(channels)]))
+                                                  equinox.nn.Identity() if preact else norm(channels)]))
         self.act = act
         self.preact = preact
 
@@ -84,28 +84,30 @@ class ResNet(equinox.nn.Sequential):
                  ):
         expansion = 1
         act = equinox.nn.Lambda(act)
+
         key, key0, key1 = jax.random.split(key, 3)
         conv = conv3x3(in_channels, width, stride=1, use_bias=norm is None, key=key0)
-        post_conv = equinox.nn.Identity() if preact else equinox.nn.Sequential([norm(width), equinox.nn.Lambda(act)])
+        post_conv = equinox.nn.Identity() if preact else equinox.nn.Sequential([norm(width), act])
         pool = equinox.nn.AdaptiveMaxPool2d(1)
-        pre_pool = (equinox.nn.Sequential([norm(4 * width * expansion * widen_factor), equinox.nn.Lambda(act)])
+        pre_pool = (equinox.nn.Sequential([norm(4 * width * expansion * widen_factor), act])
                     if preact else equinox.nn.Identity())
-
         fc = equinox.nn.Linear(4 * width * expansion * widen_factor, num_classes, key=key1)
 
-        def _make_layer(in_planes: int, planes: int, stride: int) -> tuple[equinox.Module, int]:
+        def _make_layer(key: jax.random.PRNGKeyArray, in_planes: int, planes: int, stride: int
+                        ) -> tuple[equinox.Module, int]:
             layers = []
             for i in range(layer_depth):
-                key0, key1 = jax.random.split(key)
+                key, key0 = jax.random.split(key)
                 layers.append(block(in_planes, planes, stride if i == 0 else 1, groups, width_per_group, norm, act,
                                     preact=preact, key=key0))
                 if i == 0:
                     in_planes = planes * expansion
             return equinox.nn.Sequential(layers), in_planes
 
-        layer1, in_plane = _make_layer(width, width * widen_factor, stride=1)
-        layer2, in_plane = _make_layer(in_plane, width * 2 * widen_factor, stride=2)
-        layer3, in_plane = _make_layer(in_plane, width * 4 * widen_factor, stride=2)
+        key, key0, key1, key2 = jax.random.split(key, 4)
+        layer1, in_plane = _make_layer(key0, width, width * widen_factor, stride=1)
+        layer2, in_plane = _make_layer(key1, in_plane, width * 2 * widen_factor, stride=2)
+        layer3, in_plane = _make_layer(key2, in_plane, width * 4 * widen_factor, stride=2)
 
         layers = (conv, post_conv, layer1, layer2, layer3, pre_pool, pool,
                   equinox.nn.Lambda(lambda x: jnp.reshape(x, (-1,))), fc)
@@ -231,3 +233,36 @@ def wrn40_2(key: jax.random.PRNGKeyArray,
     """ WideResNet by Zagoruyko&Komodakis 17
     """
     return wide_resnet(key, num_classes, 40, 2, in_channels)
+
+
+def group_norm(num_channels: int,
+               num_groups: int = 8):
+    return equinox.nn.GroupNorm(num_groups, num_channels)
+
+
+def resnet20_gn(key: jax.random.PRNGKeyArray,
+                num_classes: int = 10,
+                in_channels: int = 3
+                ) -> ResNet:
+    return resnet(key, num_classes, 20, in_channels, norm=group_norm)
+
+
+def resnet56_gn(key: jax.random.PRNGKeyArray,
+                num_classes: int = 10,
+                in_channels: int = 3
+                ) -> ResNet:
+    return resnet(key, num_classes, 56, in_channels, norm=group_norm)
+
+
+def wrn28_2_gn(key: jax.random.PRNGKeyArray,
+               num_classes: int = 10,
+               in_channels: int = 3
+               ) -> ResNet:
+    return wide_resnet(key, num_classes, 28, 2, in_channels, norm=group_norm)
+
+
+def wrn40_2_gn(key: jax.random.PRNGKeyArray,
+               num_classes: int = 10,
+               in_channels: int = 3
+               ) -> ResNet:
+    return wide_resnet(key, num_classes, 40, 2, in_channels, norm=group_norm)
