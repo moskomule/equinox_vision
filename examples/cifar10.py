@@ -14,7 +14,7 @@ def main():
 
     key, key0 = jax.random.split(key)
     print('--setup model--')
-    model = models.wrn28_2(key0).train()
+    model = models.wrn28_2_gn(key0).train()  # batch_norm is too slow...
     print('--setup dataset--')
     trainset = datasets.cifar10("~/.cache/equinox_vision", True, True)
     testset = datasets.cifar10("~/.cache/equinox_vision", False, True)
@@ -51,7 +51,7 @@ def main():
     for i in track(range(num_iters)):
         key, key0 = jax.random.split(key)
         loss, model, opt_state = train_step(model, key0, opt_state)
-        if i % (num_iters // 200) == 0:
+        if i % (num_iters // 100) == 0:
             accuracy = val_step(model.eval(), testset.inputs, testset.labels)
             print(f"test accuracy at {i:>10}th iteration: {accuracy:.3f}")
 
