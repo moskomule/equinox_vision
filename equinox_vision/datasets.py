@@ -101,3 +101,15 @@ def cifar100(root: str | Path,
     inputs = jnp.stack([img.numpy() for img, label in _dataset])  # BCHW in [0, 1]
     labels = jnp.array([label for img, label in _dataset])
     return Dataset(inputs, labels, 'cifar100', len(inputs), 100, 32)
+
+
+# svhn
+def svhn(root: str | Path,
+         is_train: bool,
+         download: bool = False
+         ) -> Dataset:
+    _dataset = torch_datasets.SVHN(root, 'train' if is_train else 'test',
+                                   transform=torch_transforms.ToTensor(), download=download)
+    inputs = jnp.stack([img.numpy() for img, label in _dataset])  # BCHW in [0, 1]
+    labels = jnp.array([label for img, label in _dataset])
+    return Dataset(inputs, labels, 'svhn', len(inputs), 10, 32)
