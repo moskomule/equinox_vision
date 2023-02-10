@@ -19,9 +19,9 @@ def main():
     print('--setup dataset--')
     trainset = datasets.cifar10("~/.cache/equinox_vision", True, True)
     testset = datasets.cifar10("~/.cache/equinox_vision", False, True)
-    transform = jax.jit(transforms.compose([transforms.normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-                                            transforms.random_crop(32, 4, 'reflect'),
-                                            transforms.random_hflip()]))
+    transform = transforms.compose([transforms.normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+                                    transforms.random_crop(32, 4, 'reflect'),
+                                    transforms.random_hflip()])
     optim = optax.chain(optax.additive_weight_decay(1e-4),
                         optax.sgd(optax.warmup_cosine_decay_schedule(0.01, 0.1,
                                                                      warmup_steps=int(0.01 * num_iters),
@@ -44,7 +44,7 @@ def main():
 
     @equinox.filter_jit
     def val_step(model, inputs, labels):
-        inputs = jax.jit(transforms.normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)))(inputs)
+        inputs = transforms.normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))(inputs)
         preds = jnp.argmax(jax.vmap(model, axis_name='batch')(inputs), axis=1)
         return jnp.sum(preds == labels) / preds.shape[0]
 
