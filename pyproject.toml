@@ -51,7 +51,8 @@ python = ["310", ]
 
 [tool.hatch.envs.docs]
 extra-dependencies = [
-    "mkdocs-material"
+    "mkdocs-material",
+    "mkdocstrings[python]"
 ]
 [tool.hatch.envs.docs.scripts]
 build = "mkdocs build --clean --strict"

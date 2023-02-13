@@ -150,7 +150,6 @@ def resnet(key: jax.random.PRNGKeyArray,
            act: Callable[[Array], Array] = jax.nn.relu,
            **kwargs
            ) -> ResNet:
-    "resnet-{depth}"
     assert (depth - 2) % 6 == 0
     layer_depth = (depth - 2) // 6
     return ResNet(BasicBlock, norm, num_classes, layer_depth, in_channels=in_channels, act=act, key=key, **kwargs)
@@ -165,7 +164,6 @@ def wide_resnet(key: jax.random.PRNGKeyArray,
                 act: Callable[[Array], Array] = jax.nn.relu,
                 **kwargs
                 ) -> ResNet:
-    "wideresnet-{depth}-{widen_factor}"
     assert (depth - 4) % 6 == 0
     layer_depth = (depth - 4) // 6
     return ResNet(BasicBlock, norm, num_classes, layer_depth, in_channels=in_channels,
@@ -244,6 +242,8 @@ def resnet20_gn(key: jax.random.PRNGKeyArray,
                 num_classes: int = 10,
                 in_channels: int = 3
                 ) -> ResNet:
+    """ ResNet by He+16 with GroupNorm
+    """
     return resnet(key, num_classes, 20, in_channels, norm=group_norm)
 
 
@@ -251,6 +251,8 @@ def resnet56_gn(key: jax.random.PRNGKeyArray,
                 num_classes: int = 10,
                 in_channels: int = 3
                 ) -> ResNet:
+    """ ResNet by He+16 with GroupNorm
+    """
     return resnet(key, num_classes, 56, in_channels, norm=group_norm)
 
 
@@ -258,6 +260,8 @@ def wrn28_2_gn(key: jax.random.PRNGKeyArray,
                num_classes: int = 10,
                in_channels: int = 3
                ) -> ResNet:
+    """ WideResNet by Zagoruyko&Komodakis 17 with GroupNorm
+    """
     return wide_resnet(key, num_classes, 28, 2, in_channels, norm=group_norm)
 
 
@@ -265,4 +269,6 @@ def wrn40_2_gn(key: jax.random.PRNGKeyArray,
                num_classes: int = 10,
                in_channels: int = 3
                ) -> ResNet:
+    """ WideResNet by Zagoruyko&Komodakis 17 with GroupNorm
+    """
     return wide_resnet(key, num_classes, 40, 2, in_channels, norm=group_norm)

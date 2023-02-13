@@ -3,7 +3,7 @@ import jax
 import pytest
 from jax import numpy as jnp
 
-from equinox_vision.datasets import Dataset, loader
+from equinox_vision.data import Dataset, loader
 
 
 @pytest.mark.parametrize("jit", [True, False])

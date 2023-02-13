@@ -5,7 +5,7 @@ from jax import numpy as jnp
 from rich import print
 from rich.progress import track
 
-from equinox_vision import datasets, models, transforms
+from equinox_vision import data, models, transforms
 
 
 def main():
@@ -17,8 +17,8 @@ def main():
     print('--setup model--')
     model = models.wrn28_2_gn(key0).train()  # batch_norm is too slow...
     print('--setup dataset--')
-    trainset = datasets.cifar10("~/.cache/equinox_vision", True, True)
-    testset = datasets.cifar10("~/.cache/equinox_vision", False, True)
+    trainset = data.cifar10("~/.cache/equinox_vision", True, True)
+    testset = data.cifar10("~/.cache/equinox_vision", False, True)
     transform = transforms.compose([transforms.normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
                                     transforms.random_crop(32, 4, 'reflect'),
                                     transforms.random_hflip()])
@@ -36,7 +36,7 @@ def main():
 
     @equinox.filter_jit
     def train_step(model, key, opt_state):
-        inputs, labels = datasets.loader(trainset, key=key, batch_size=batch_size, transform=transform)
+        inputs, labels = data.loader(trainset, key=key, batch_size=batch_size, transform=transform)
         loss, grads = forward(model, inputs, labels)
         updates, opt_state = optim.update(grads, opt_state, model)
         model = equinox.apply_updates(model, updates)

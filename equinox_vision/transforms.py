@@ -11,7 +11,9 @@ TransformFunc: TypeAlias = Callable[[Array, jax.random.PRNGKeyArray], Array]
 
 
 def random_hflip(prob: float = 0.5) -> TransformFunc:
-    # random horizontal flip
+    """ Random horizontal flipping.
+    """
+
     def _random_hflip(img: Array,
                       key: jax.random.PRNGKeyArray
                       ) -> Array:
@@ -27,8 +29,10 @@ def random_hflip(prob: float = 0.5) -> TransformFunc:
 def random_crop(size: int,
                 padding: int = 0,
                 padding_mode: str = 'constant') -> TransformFunc:
-    # random cropping with optional padding
-    # assumes input image is squared
+    """ Random cropping with optional padding (`padding`, `padding_mode`) for squared images.
+    See [jax.numpy.padding]()'s `mode` for `padding_mode` options.
+    """
+
     slice_sizes = (size, size)
 
     def _random_crop(img: Array,
@@ -49,7 +53,9 @@ def random_crop(size: int,
 def normalize(mean: tuple | Array,
               std: tuple | Array
               ) -> TransformFunc:
-    # normalization
+    """ Normalization of inputs.
+    """
+
     def _ensure_3d(arr):
         if isinstance(arr, tuple):
             arr = jnp.array(arr)
@@ -70,6 +76,9 @@ def normalize(mean: tuple | Array,
 
 def compose(funcs: list[TransformFunc]
             ) -> TransformFunc:
+    """ Compose several transformations.
+    """
+
     num_funcs = len(funcs)
 
     def composed(img: Array, key: jax.random.PRNGKeyArray) -> Array:

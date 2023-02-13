@@ -33,6 +33,12 @@ def loader(dataset: Dataset,
            indices: Array | None = None,
            transform: Callable[[Array, jax.random.PRNGKeyArray], Array] | None = None,
            ) -> tuple[Array, Array]:
+    """ Data loader function.
+    If `batch_size` is specified, a batch is randomly sampled.
+    If `indices` is given, a batch corresponding to `indices` is returned.
+    `transform` is applied to images (dataset.inputs).
+    """
+
     size = dataset.inputs.shape[0]
     if batch_size is not None:
         key, key1 = jax.random.split(key)
@@ -77,9 +83,6 @@ def fmnist(root: str | Path,
     inputs = jnp.stack([img.numpy() for img, label in _dataset])  # BCHW in [0, 1]
     labels = jnp.array([label for img, label in _dataset])
     return Dataset(inputs, labels, 'fmnist', len(inputs), 10, 28, 1)
-
-
-fashion_mnist = fmnist
 
 
 # cifar-like datasets
