@@ -17,6 +17,7 @@ class Dataset:
     num_classes: int
     image_size: int
     num_channels: int = 3
+    data_stats: tuple[tuple[float, ...], tuple[float, ...]] = None
 
     def __str__(self):
         return f"Dataset(name={self.name}, size={self.size}, num_classes={self.num_classes} " \
@@ -24,7 +25,7 @@ class Dataset:
 
     def __hash__(self):
         return hash(f"{self.inputs}{self.labels}{self.name}{self.size}{self.num_classes}"
-                    f"{self.image_size}{self.num_channels}")
+                    f"{self.image_size}{self.num_channels}-{self.data_stats}")
 
 
 def loader(dataset: Dataset,
@@ -93,7 +94,8 @@ def cifar10(root: str | Path,
     _dataset = torch_datasets.CIFAR10(root, is_train, transform=torch_transforms.ToTensor(), download=download)
     inputs = jnp.stack([img.numpy() for img, label in _dataset])  # BCHW in [0, 1]
     labels = jnp.array([label for img, label in _dataset])
-    return Dataset(inputs, labels, 'cifar10', len(inputs), 10, 32)
+    return Dataset(inputs, labels, 'cifar10', len(inputs), 10, 32, 3,
+                   ((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)))
 
 
 def cifar100(root: str | Path,
@@ -103,7 +105,8 @@ def cifar100(root: str | Path,
     _dataset = torch_datasets.CIFAR100(root, is_train, transform=torch_transforms.ToTensor(), download=download)
     inputs = jnp.stack([img.numpy() for img, label in _dataset])  # BCHW in [0, 1]
     labels = jnp.array([label for img, label in _dataset])
-    return Dataset(inputs, labels, 'cifar100', len(inputs), 100, 32)
+    return Dataset(inputs, labels, 'cifar100', len(inputs), 100, 32, 3,
+                   ((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761)))
 
 
 # svhn
@@ -115,4 +118,5 @@ def svhn(root: str | Path,
                                    transform=torch_transforms.ToTensor(), download=download)
     inputs = jnp.stack([img.numpy() for img, label in _dataset])  # BCHW in [0, 1]
     labels = jnp.array([label for img, label in _dataset])
-    return Dataset(inputs, labels, 'svhn', len(inputs), 10, 32)
+    return Dataset(inputs, labels, 'svhn', len(inputs), 10, 32, 3,
+                   ((0.4390, 0.4443, 0.4692), (0.1189, 0.1222, 0.1049)))
