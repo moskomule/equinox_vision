@@ -1,5 +1,7 @@
 import equinox
 import jax
+import jax.experimental.mesh_utils as mesh_utils
+import jax.sharding as sharding
 import optax
 from jax import numpy as jnp
 from rich import print
@@ -8,7 +10,7 @@ from rich.progress import track
 from equinox_vision import data, models, transforms
 
 
-def main():
+def main(distributed: bool):
     batch_size = 128
     num_iters = 80_000
     key = jax.random.PRNGKey(0)
@@ -29,6 +31,11 @@ def main():
                                   momentum=0.9))
     opt_state = optim.init(equinox.filter(model, equinox.is_array))
 
+    if distributed:
+        num_devices = len(jax.devices())
+        devices = mesh_utils.create_device_mesh((num_devices, 1))
+        shard = sharding.PositionalSharding(devices)
+
     @equinox.filter_value_and_grad
     def forward(model, inputs, labels):
         outputs = jax.vmap(model, axis_name='batch')(inputs)
@@ -37,6 +44,8 @@ def main():
     @equinox.filter_jit
     def train_step(model, key, opt_state):
         inputs, labels = data.loader(trainset, key=key, batch_size=batch_size, transform=transform)
+        if distributed:
+            inputs, labels = jax.device_put((inputs, labels), shard)
         loss, grads = forward(model, inputs, labels)
         updates, opt_state = optim.update(grads, opt_state, model)
         model = equinox.apply_updates(model, updates)
@@ -58,4 +67,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+
+    p = argparse.ArgumentParser()
+    p.add_argument("--distributed", action='store_true')
+    args = p.parse_args()
+    main(args.distributed)
