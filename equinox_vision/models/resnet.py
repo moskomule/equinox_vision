@@ -3,22 +3,24 @@
 from __future__ import annotations
 
 import math
+import warnings
 from collections.abc import Callable
 
 import equinox
 import jax
+from equinox.nn._stateful import State
 from jaxtyping import Array
 
 from equinox_vision.models.utils import conv1x1, conv3x3
 
 
 class _StateIdentity(equinox.nn.Identity):
-    def __call__(self, x: Array, state: Array = None, *, key=None) -> tuple[Array, Array]:
+    def __call__(self, x: Array, state: State = None, *, key=None) -> tuple[Array, State]:
         return x, state
 
 
 class _StateSequential(equinox.nn.Sequential):
-    def __call__(self, x: Array, state: Array = None, *, key: jax.random.PRNGKeyArray = None) -> tuple[Array, Array]:
+    def __call__(self, x: Array, state: State = None, *, key: jax.random.PRNGKeyArray = None) -> tuple[Array, State]:
 
         if key is None:
             keys = [None] * len(self.layers)
@@ -36,8 +38,8 @@ class BasicBlock(equinox.Module):
     norm2: equinox.Module
     downsample_conv: equinox.Module
     downsample_norm: equinox.Module
-    act: equinox.Module = equinox.static_field()
-    preact: bool = equinox.static_field()
+    act: equinox.Module = equinox.field(static=True)
+    preact: bool = equinox.field(static=True)
 
     def __init__(self,
                  in_channels: int,
@@ -97,9 +99,9 @@ class ResNet(equinox.Module):
     pool: equinox.nn.AdaptiveMaxPool2d
     fc: equinox.Module
     conv_layers: tuple[equinox.Module, ...]
-    act: equinox.Module = equinox.static_field()
-    preact: bool = equinox.static_field()
-    return_state: bool = equinox.static_field()
+    act: equinox.Module = equinox.field(static=True)
+    preact: bool = equinox.field(static=True)
+    return_state: bool = equinox.field(static=True)
 
     def __init__(self,
                  block: type[BasicBlock],
@@ -193,6 +195,8 @@ def batch_norm(num_channels: int,
                axis_name: str = 'batch',
                momentum: float = 0.9,  # same as PyTorch's default,
                ) -> equinox.Module:
+    warnings.warn("As of equinox==0.10.10 and equinox_vision==0.0.3, batch_norm introduces significant performance "
+                  "drop, especially for wrn28_2. Please use it with careful consideration.")
     return equinox.nn.BatchNorm(num_channels, axis_name=axis_name, momentum=momentum)
 
 
