@@ -17,9 +17,23 @@ class _StateIdentity(equinox.nn.Identity):
         return x, state
 
 
+class _StateSequential(equinox.nn.Sequential):
+    def __call__(self, x: Array, state: Array = None, *, key: jax.random.PRNGKeyArray = None) -> tuple[Array, Array]:
+
+        if key is None:
+            keys = [None] * len(self.layers)
+        else:
+            keys = jax.random.split(key, len(self.layers))
+        for layer, key in zip(self.layers, keys):
+            x, state = layer(x, state, key=key)
+        return x, state
+
+
 class BasicBlock(equinox.Module):
     conv1: equinox.Module
     conv2: equinox.Module
+    norm1: equinox.Module
+    norm2: equinox.Module
     downsample_conv: equinox.Module
     downsample_norm: equinox.Module
     act: equinox.Module = equinox.static_field()
@@ -40,19 +54,17 @@ class BasicBlock(equinox.Module):
         key0, key1, key2 = jax.random.split(key, 3)
         channels = int(channels * (width_per_group / 16)) * groups
         use_bias = norm is None
-        stateful = isinstance(norm(channels), equinox.nn.BatchNorm)
-        identity = _StateIdentity if stateful else equinox.nn.Identity
 
         self.conv1 = conv3x3(in_channels, channels, stride, use_bias=use_bias, key=key0)
         self.conv2 = conv3x3(channels, channels, use_bias=use_bias, key=key1)
-        self.norm1 = identity() if norm is None else norm(in_channels if preact else channels)
-        self.norm2 = identity() if norm is None else norm(channels)
+        self.norm1 = _StateIdentity() if norm is None else norm(in_channels if preact else channels)
+        self.norm2 = _StateIdentity() if norm is None else norm(channels)
 
-        self.downsample_conv = identity()
-        self.downsample_norm = identity()
+        self.downsample_conv = equinox.nn.Identity()
+        self.downsample_norm = _StateIdentity()
         if in_channels != channels:
             self.downsample_conv = conv1x1(in_channels, channels, stride=stride, use_bias=use_bias, key=key2)
-            self.downsample_norm = identity() if preact else norm(channels)
+            self.downsample_norm = _StateIdentity() if preact else norm(channels)
 
         self.act = act
         self.preact = preact
@@ -73,9 +85,10 @@ class BasicBlock(equinox.Module):
             out, state = self.norm1(out, state)
             out = self.conv2(self.act(out))
             out, state = self.norm2(out, state)
-        out = out + self.downsample_norm(self.downsample_conv(x), state)
+        res = self.downsample_conv(x)
+        res, state = self.downsample_norm(res, state)
+        out = out + res
         out = out if self.preact else self.act(out)
-
         return out, state
 
 
@@ -125,7 +138,7 @@ class ResNet(equinox.Module):
                                     preact=preact, key=key0))
                 if i == 0:
                     in_planes = planes * expansion
-            return equinox.nn.Sequential(layers), in_planes
+            return _StateSequential(layers), in_planes
 
         key, key0, key1, key2 = jax.random.split(key, 4)
         layer1, in_plane = _make_layer(key0, width, width * widen_factor, stride=1)
@@ -156,19 +169,20 @@ class ResNet(equinox.Module):
 
     def __call__(self,
                  x: Array,
-                 *,
                  state: Array = None,
+                 *,
                  key: jax.random.PRNGKeyArray = None
                  ) -> Array | tuple[Array, Array]:
         x = self.conv_layers[0](x)
         if not self.preact:
-            x, state = self.norm(x)
+            x, state = self.norm(x, state)
             x = self.act(x)
         for layer in self.conv_layers[1:]:
             x, state = layer(x, state)
         if self.preact:
             x, state = self.norm(x, state)
             x = self.act(x)
+        x = self.pool(x)
         x = self.fc(x.reshape(-1))
         if self.return_state:
             return x, state
@@ -179,7 +193,7 @@ def batch_norm(num_channels: int,
                axis_name: str = 'batch',
                momentum: float = 0.9,  # same as PyTorch's default,
                ) -> equinox.Module:
-    return equinox.experimental.BatchNorm(num_channels, axis_name=axis_name, momentum=momentum)
+    return equinox.nn.BatchNorm(num_channels, axis_name=axis_name, momentum=momentum)
 
 
 def resnet(key: jax.random.PRNGKeyArray,
@@ -213,65 +227,71 @@ def wide_resnet(key: jax.random.PRNGKeyArray,
 def resnet20(key: jax.random.PRNGKeyArray,
              num_classes: int = 10,
              in_channels: int = 3,
-             return_state: bool = False
+             **kwargs,
              ) -> ResNet:
     """ ResNet by He+16
     """
-    return resnet(key, num_classes, 20, in_channels, )
+    return resnet(key, num_classes, 20, in_channels, **kwargs)
 
 
 def resnet32(key: jax.random.PRNGKeyArray,
              num_classes: int = 10,
-             in_channels: int = 3
+             in_channels: int = 3,
+             **kwargs,
              ) -> ResNet:
     """ ResNet by He+16
     """
-    return resnet(key, num_classes, 32, in_channels, )
+    return resnet(key, num_classes, 32, in_channels, **kwargs)
 
 
 def resnet56(key: jax.random.PRNGKeyArray,
              num_classes: int = 10,
-             in_channels: int = 3
+             in_channels: int = 3,
+             **kwargs,
              ) -> ResNet:
     """ ResNet by He+16
     """
-    return resnet(key, num_classes, 56, in_channels, )
+    return resnet(key, num_classes, 56, in_channels, **kwargs)
 
 
 def wrn16_8(key: jax.random.PRNGKeyArray,
             num_classes: int = 10,
-            in_channels: int = 3
+            in_channels: int = 3,
+            **kwargs,
             ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17
     """
-    return wide_resnet(key, num_classes, 16, 8, in_channels, )
+    return wide_resnet(key, num_classes, 16, 8, in_channels, **kwargs)
 
 
 def wrn28_2(key: jax.random.PRNGKeyArray,
             num_classes: int = 10,
-            in_channels: int = 3
+            in_channels: int = 3,
+            **kwargs,
             ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17
     """
-    return wide_resnet(key, num_classes, 28, 2, in_channels, )
+    return wide_resnet(key, num_classes, 28, 2, in_channels, **kwargs)
 
 
 def wrn28_10(key: jax.random.PRNGKeyArray,
              num_classes: int = 10,
-             in_channels: int = 3
+             in_channels: int = 3,
+             **kwargs,
              ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17
     """
-    return wide_resnet(key, num_classes, 28, 10, in_channels)
+    return wide_resnet(key, num_classes, 28, 10, in_channels, **kwargs)
 
 
 def wrn40_2(key: jax.random.PRNGKeyArray,
             num_classes: int = 10,
-            in_channels: int = 3
+            in_channels: int = 3,
+            **kwargs,
             ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17
     """
-    return wide_resnet(key, num_classes, 40, 2, in_channels)
+    return wide_resnet(key, num_classes, 40, 2, in_channels, **kwargs)
 
 
 def group_norm(num_channels: int,
@@ -281,35 +301,39 @@ def group_norm(num_channels: int,
 
 def resnet20_gn(key: jax.random.PRNGKeyArray,
                 num_classes: int = 10,
-                in_channels: int = 3
+                in_channels: int = 3,
+                **kwargs,
                 ) -> ResNet:
     """ ResNet by He+16 with GroupNorm
     """
-    return resnet(key, num_classes, 20, in_channels, norm=group_norm)
+    return resnet(key, num_classes, 20, in_channels, norm=group_norm, **kwargs)
 
 
 def resnet56_gn(key: jax.random.PRNGKeyArray,
                 num_classes: int = 10,
-                in_channels: int = 3
+                in_channels: int = 3,
+                **kwargs,
                 ) -> ResNet:
     """ ResNet by He+16 with GroupNorm
     """
-    return resnet(key, num_classes, 56, in_channels, norm=group_norm)
+    return resnet(key, num_classes, 56, in_channels, norm=group_norm, **kwargs)
 
 
 def wrn28_2_gn(key: jax.random.PRNGKeyArray,
                num_classes: int = 10,
-               in_channels: int = 3
+               in_channels: int = 3,
+               **kwargs,
                ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17 with GroupNorm
     """
-    return wide_resnet(key, num_classes, 28, 2, in_channels, norm=group_norm)
+    return wide_resnet(key, num_classes, 28, 2, in_channels, norm=group_norm, **kwargs)
 
 
 def wrn40_2_gn(key: jax.random.PRNGKeyArray,
                num_classes: int = 10,
-               in_channels: int = 3
+               in_channels: int = 3,
+               **kwargs
                ) -> ResNet:
     """ WideResNet by Zagoruyko&Komodakis 17 with GroupNorm
     """
-    return wide_resnet(key, num_classes, 40, 2, in_channels, norm=group_norm)
+    return wide_resnet(key, num_classes, 40, 2, in_channels, norm=group_norm, **kwargs)

@@ -35,8 +35,7 @@ def main(distributed: bool, model: Model):
     key, key0 = jax.random.split(key)
 
     print('--setup model--')
-    model = model.create(key)
-    model.return_state = True  # to share code
+    model = Model(model).create(key, return_state=True)
     state = equinox.nn.State(model)
 
     print('--setup dataset--')
@@ -59,7 +58,7 @@ def main(distributed: bool, model: Model):
         print(f"{num_devices} devices found; start distributed mode")
 
     def forward(model, state, inputs, labels):
-        outputs, state = jax.vmap(model, axis_name='batch')(inputs, state)
+        outputs, state = jax.vmap(model, axis_name='batch', in_axes=(0, None), out_axes=(0, None))(inputs, state)
         return jnp.mean(optax.softmax_cross_entropy_with_integer_labels(outputs, labels)), state
 
     @equinox.filter_jit
@@ -84,7 +83,7 @@ def main(distributed: bool, model: Model):
         key, key0 = jax.random.split(key)
         loss, state, model, opt_state = train_step(model, state, key0, opt_state)
         if i % (num_iters // 100) == 0:
-            accuracy = val_step(model.eval(), testset.inputs, testset.labels)
+            accuracy = val_step(equinox.Partial(model.eval(), state=state), testset.inputs, testset.labels)
             print(f"test accuracy at {i:>10}th iteration: {accuracy:.3f}")
 
 
