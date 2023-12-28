@@ -22,7 +22,7 @@ class Model(enum.StrEnum):
 
 
 def main(model: Model):
-    batch_size = 256
+    batch_size = 128
     num_iters = 80_000
 
     key = jax.random.PRNGKey(0)
@@ -69,6 +69,7 @@ def main(model: Model):
         key, key0 = jax.random.split(key)
         loss, state, model, opt_state = train_step(model, state, key0, opt_state)
         if i % (num_iters // 100) == 0:
+            print(f"{float(loss):.4f}")
             accuracy = val_step(equinox.Partial(equinox.tree_inference(model, value=True), state=state),
                                 testset.inputs, testset.labels)
             print(f"test accuracy at {i:>10}th iteration: {accuracy:.3f}")
