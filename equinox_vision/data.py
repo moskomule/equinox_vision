@@ -48,10 +48,10 @@ def split_train_val(key: Array,
 
 
 def loader(dataset: Dataset,
-           key: jax.random.PRNGKeyArray,
+           key: Array,
            batch_size: int | None = None,
            indices: Array | None = None,
-           transform: Callable[[Array, jax.random.PRNGKeyArray], Array] | None = None,
+           transform: Callable[[Array, Array], Array] | None = None,
            ) -> tuple[Array, Array]:
     """ Data loader function.
     If `batch_size` is specified, a batch is randomly sampled.

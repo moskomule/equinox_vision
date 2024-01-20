@@ -20,7 +20,7 @@ class _StateIdentity(equinox.nn.Identity):
 
 
 class _StateSequential(equinox.nn.Sequential):
-    def __call__(self, x: Array, state: State = None, *, key: jax.random.PRNGKeyArray = None) -> tuple[Array, State]:
+    def __call__(self, x: Array, state: State = None, *, key: Array = None) -> tuple[Array, State]:
 
         if key is None:
             keys = [None] * len(self.layers)
@@ -51,7 +51,7 @@ class BasicBlock(equinox.Module):
                  act: equinox.Module,
                  preact: bool = False,
                  *,
-                 key: jax.random.PRNGKeyArray
+                 key: Array
                  ):
         key0, key1, key2 = jax.random.split(key, 3)
         channels = int(channels * (width_per_group / 16)) * groups
@@ -75,7 +75,7 @@ class BasicBlock(equinox.Module):
                  x: Array,
                  state: Array | None = None,
                  *,
-                 key: jax.random.PRNGKeyArray = None
+                 key: Array = None
                  ) -> tuple[Array, Array]:
         if self.preact:
             out, state = self.norm1(x, state)
@@ -117,7 +117,7 @@ class ResNet(equinox.Module):
                  preact: bool = False,
                  return_state: bool = False,
                  *,
-                 key: jax.random.PRNGKeyArray
+                 key: Array
                  ):
         expansion = 1
         act = equinox.nn.Lambda(act)
@@ -131,7 +131,7 @@ class ResNet(equinox.Module):
         self.norm = norm(4 * width * expansion * widen_factor if preact else width)
         self.fc = equinox.nn.Linear(4 * width * expansion * widen_factor, num_classes, key=key1)
 
-        def _make_layer(key: jax.random.PRNGKeyArray, in_planes: int, planes: int, stride: int
+        def _make_layer(key: Array, in_planes: int, planes: int, stride: int
                         ) -> tuple[equinox.Module, int]:
             layers = []
             for i in range(layer_depth):
@@ -173,7 +173,7 @@ class ResNet(equinox.Module):
                  x: Array,
                  state: Array = None,
                  *,
-                 key: jax.random.PRNGKeyArray = None
+                 key: Array = None
                  ) -> Array | tuple[Array, Array]:
         x = self.conv_layers[0](x)
         if not self.preact:
@@ -200,7 +200,7 @@ def batch_norm(num_channels: int,
     return equinox.nn.BatchNorm(num_channels, axis_name=axis_name, momentum=momentum)
 
 
-def resnet(key: jax.random.PRNGKeyArray,
+def resnet(key: Array,
            num_classes: int,
            depth: int,
            in_channels: int = 3,
@@ -213,7 +213,7 @@ def resnet(key: jax.random.PRNGKeyArray,
     return ResNet(BasicBlock, norm, num_classes, layer_depth, in_channels=in_channels, act=act, key=key, **kwargs)
 
 
-def wide_resnet(key: jax.random.PRNGKeyArray,
+def wide_resnet(key: Array,
                 num_classes: int,
                 depth: int,
                 widen_factor: int,
@@ -228,7 +228,7 @@ def wide_resnet(key: jax.random.PRNGKeyArray,
                   widen_factor=widen_factor, act=act, preact=True, key=key, **kwargs)
 
 
-def resnet20(key: jax.random.PRNGKeyArray,
+def resnet20(key: Array,
              num_classes: int = 10,
              in_channels: int = 3,
              **kwargs,
@@ -238,7 +238,7 @@ def resnet20(key: jax.random.PRNGKeyArray,
     return resnet(key, num_classes, 20, in_channels, **kwargs)
 
 
-def resnet32(key: jax.random.PRNGKeyArray,
+def resnet32(key: Array,
              num_classes: int = 10,
              in_channels: int = 3,
              **kwargs,
@@ -248,7 +248,7 @@ def resnet32(key: jax.random.PRNGKeyArray,
     return resnet(key, num_classes, 32, in_channels, **kwargs)
 
 
-def resnet56(key: jax.random.PRNGKeyArray,
+def resnet56(key: Array,
              num_classes: int = 10,
              in_channels: int = 3,
              **kwargs,
@@ -258,7 +258,7 @@ def resnet56(key: jax.random.PRNGKeyArray,
     return resnet(key, num_classes, 56, in_channels, **kwargs)
 
 
-def wrn16_8(key: jax.random.PRNGKeyArray,
+def wrn16_8(key: Array,
             num_classes: int = 10,
             in_channels: int = 3,
             **kwargs,
@@ -268,7 +268,7 @@ def wrn16_8(key: jax.random.PRNGKeyArray,
     return wide_resnet(key, num_classes, 16, 8, in_channels, **kwargs)
 
 
-def wrn28_2(key: jax.random.PRNGKeyArray,
+def wrn28_2(key: Array,
             num_classes: int = 10,
             in_channels: int = 3,
             **kwargs,
@@ -278,7 +278,7 @@ def wrn28_2(key: jax.random.PRNGKeyArray,
     return wide_resnet(key, num_classes, 28, 2, in_channels, **kwargs)
 
 
-def wrn28_10(key: jax.random.PRNGKeyArray,
+def wrn28_10(key: Array,
              num_classes: int = 10,
              in_channels: int = 3,
              **kwargs,
@@ -288,7 +288,7 @@ def wrn28_10(key: jax.random.PRNGKeyArray,
     return wide_resnet(key, num_classes, 28, 10, in_channels, **kwargs)
 
 
-def wrn40_2(key: jax.random.PRNGKeyArray,
+def wrn40_2(key: Array,
             num_classes: int = 10,
             in_channels: int = 3,
             **kwargs,
@@ -303,7 +303,7 @@ def group_norm(num_channels: int,
     return equinox.nn.GroupNorm(num_groups, num_channels)
 
 
-def resnet20_gn(key: jax.random.PRNGKeyArray,
+def resnet20_gn(key: Array,
                 num_classes: int = 10,
                 in_channels: int = 3,
                 **kwargs,
@@ -313,7 +313,7 @@ def resnet20_gn(key: jax.random.PRNGKeyArray,
     return resnet(key, num_classes, 20, in_channels, norm=group_norm, **kwargs)
 
 
-def resnet56_gn(key: jax.random.PRNGKeyArray,
+def resnet56_gn(key: Array,
                 num_classes: int = 10,
                 in_channels: int = 3,
                 **kwargs,
@@ -323,7 +323,7 @@ def resnet56_gn(key: jax.random.PRNGKeyArray,
     return resnet(key, num_classes, 56, in_channels, norm=group_norm, **kwargs)
 
 
-def wrn28_2_gn(key: jax.random.PRNGKeyArray,
+def wrn28_2_gn(key: Array,
                num_classes: int = 10,
                in_channels: int = 3,
                **kwargs,
@@ -333,7 +333,7 @@ def wrn28_2_gn(key: jax.random.PRNGKeyArray,
     return wide_resnet(key, num_classes, 28, 2, in_channels, norm=group_norm, **kwargs)
 
 
-def wrn40_2_gn(key: jax.random.PRNGKeyArray,
+def wrn40_2_gn(key: Array,
                num_classes: int = 10,
                in_channels: int = 3,
                **kwargs
@@ -343,7 +343,7 @@ def wrn40_2_gn(key: jax.random.PRNGKeyArray,
     return wide_resnet(key, num_classes, 40, 2, in_channels, norm=group_norm, **kwargs)
 
 
-def wrn28_10_gn(key: jax.random.PRNGKeyArray,
+def wrn28_10_gn(key: Array,
                 num_classes: int = 10,
                 in_channels: int = 3,
                 **kwargs,

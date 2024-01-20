@@ -7,7 +7,7 @@ import jax
 from jax import numpy as jnp
 from jaxtyping import Array
 
-TransformFunc: TypeAlias = Callable[[Array, jax.random.PRNGKeyArray], Array]
+TransformFunc: TypeAlias = Callable[[Array, Array], Array]
 
 
 def random_hflip(prob: float = 0.5) -> TransformFunc:
@@ -15,7 +15,7 @@ def random_hflip(prob: float = 0.5) -> TransformFunc:
     """
 
     def _random_hflip(img: Array,
-                      key: jax.random.PRNGKeyArray
+                      key: Array
                       ) -> Array:
         coin = jax.random.bernoulli(key, prob)
         return jax.lax.cond(coin,
@@ -36,7 +36,7 @@ def random_crop(size: int,
     slice_sizes = (size, size)
 
     def _random_crop(img: Array,
-                     key: jax.random.PRNGKeyArray
+                     key: Array
                      ) -> Array:
         img_size = img.shape[-1]
         if padding > 0:
@@ -67,7 +67,7 @@ def normalize(mean: tuple | Array,
     mean, std = _ensure_3d(mean), _ensure_3d(std)
 
     def _normalize(img: Array,
-                   key: jax.random.PRNGKeyArray = None
+                   key: Array = None
                    ) -> Array:
         return (img - mean) / std
 
@@ -81,7 +81,7 @@ def compose(funcs: list[TransformFunc]
 
     num_funcs = len(funcs)
 
-    def composed(img: Array, key: jax.random.PRNGKeyArray) -> Array:
+    def composed(img: Array, key: Array) -> Array:
         keys = jax.random.split(key, num_funcs)
         for func, key in zip(funcs, keys):
             img = func(img, key)
