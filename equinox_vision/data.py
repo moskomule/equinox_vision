@@ -28,6 +28,25 @@ class Dataset:
                     f"{self.image_size}{self.num_channels}-{self.data_stats}")
 
 
+def split_train_val(key: Array,
+                    dataset: Dataset,
+                    val_size: int
+                    ) -> tuple[Dataset, Dataset]:
+    indices = jax.random.permutation(key, dataset.size)
+    train_indices = indices[val_size:]
+    val_indices = indices[:val_size]
+    train_set = dataclasses.replace(dataset,
+                                    inputs=dataset.inputs[train_indices],
+                                    labels=dataset.labels[train_indices],
+                                    size=len(train_indices))
+    val_set = dataclasses.replace(dataset,
+                                  inputs=dataset.inputs[val_indices],
+                                  labels=dataset.labels[val_indices],
+                                  size=len(val_indices))
+
+    return train_set, val_set
+
+
 def loader(dataset: Dataset,
            key: jax.random.PRNGKeyArray,
            batch_size: int | None = None,

@@ -341,3 +341,13 @@ def wrn40_2_gn(key: jax.random.PRNGKeyArray,
     """ WideResNet by Zagoruyko&Komodakis 17 with GroupNorm
     """
     return wide_resnet(key, num_classes, 40, 2, in_channels, norm=group_norm, **kwargs)
+
+
+def wrn28_10_gn(key: jax.random.PRNGKeyArray,
+                num_classes: int = 10,
+                in_channels: int = 3,
+                **kwargs,
+                ) -> ResNet:
+    """ WideResNet by Zagoruyko&Komodakis 17 with GroupNorm
+    """
+    return wide_resnet(key, num_classes, 28, 10, in_channels, norm=group_norm, **kwargs)
