@@ -24,6 +24,7 @@ dependencies = [
     "equinox",
     "optax",
     "rich",
+    "torchvision"
 ]
 dynamic = ["version"]
 
@@ -45,7 +46,7 @@ dependencies = [
 ]
 
 [[tool.hatch.envs.test.matrix]]
-python = ["311", "312"]
+python = ["311", ]
 
 [tool.hatch.envs.docs]
 extra-dependencies = [
