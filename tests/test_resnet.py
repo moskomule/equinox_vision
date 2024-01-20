@@ -13,7 +13,7 @@ def test_resnet_bn(model):
 
     # test batch norm
     data = jnp.ones((4, 3, 32, 32))
-    out, _ = jax.vmap(model, axis_name='batch', in_axes=(0, None), out_axes=(0, None))(data)
+    out, _ = jax.vmap(model, axis_name='batch')(data)
     assert out.shape[-1] == 5
 
 
