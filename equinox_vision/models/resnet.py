@@ -164,10 +164,12 @@ class ResNet(equinox.Module):
         self.conv_layers = equinox.tree_at(get_conv_weights, conv_layers, new_weights)
 
     def train(self) -> ResNet:
-        return equinox.tree_inference(self, False)
+        warnings.warn("ResNet.train() has been deprecated.")
+        return self
 
-    def eval(self) -> ResNet:
-        return equinox.tree_inference(self, True)
+    def eval(self, state: State) -> equinox.Module:
+        eval_mode = equinox.nn.inference_mode(self)
+        return equinox.Partial(eval_mode, state=state)
 
     def __call__(self,
                  x: Array,
@@ -195,8 +197,6 @@ def batch_norm(num_channels: int,
                axis_name: str = 'batch',
                momentum: float = 0.9,  # same as PyTorch's default,
                ) -> equinox.Module:
-    warnings.warn("As of equinox==0.10.10 and equinox_vision==0.0.3, batch_norm introduces significant performance "
-                  "drop, especially for wrn28_2. Please use it with careful consideration.")
     return equinox.nn.BatchNorm(num_channels, axis_name=axis_name, momentum=momentum)
 
 
