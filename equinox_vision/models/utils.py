@@ -1,5 +1,5 @@
-import jax
 from equinox import nn
+from jaxtyping import Array
 
 
 def conv3x3(in_channels: int,
